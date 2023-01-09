@@ -12,12 +12,17 @@
 #include "openssl/pem.h"
 #include "openssl/err.h"
 
-void print(BIGNUM * bn, const char * sep = "")
+void print(BIGNUM * bn, const char * sep = ":")
 {
 	std::cout << bn->dmax << std::endl;
 	std::cout << std::hex;
-	for(int i=0; i<bn->dmax; i++)
+	int i=bn->dmax;
+	while(!bn->d[i-1]) i--;
+	while(i--)
+	{
 		std::cout << std::setw(sizeof(unsigned long) << 1) << std::setfill('0') << bn->d[i] << sep;
+		if(!(i % 2)) std::cout << std::endl;
+	}
 	std::cout << std::endl << std::endl;
 }
 
@@ -101,7 +106,6 @@ EVP_PKEY * GetPrivateKey(const char * filename = "../private.pem", const char * 
 	FILE * file = fopen(filename, "rb");
 	PEM_read_PrivateKey(file, pkey, NULL, NULL);
 	fclose(file);
-	printKey((*pkey)->pkey.rsa);
 	return *pkey;
 }
 
