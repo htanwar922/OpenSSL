@@ -17,7 +17,7 @@ void print(BIGNUM * bn, const char * sep = ":")
 	std::cout << bn->dmax << std::endl;
 	std::cout << std::hex;
 	int i=bn->dmax;
-	while(!bn->d[i-1]) i--;
+	while(!bn->d[i-1] && --i);
 	while(i--)
 	{
 		std::cout << std::setw(sizeof(unsigned long) << 1) << std::setfill('0') << bn->d[i] << sep;
@@ -39,10 +39,6 @@ void printKey(RSA * rsa)
 void GenRSAPrivateKey(const char * filename = "../private.pem", const char * passphrase = "Himanshu")
 {
 	FILE * file = fopen(filename, "wb");
-
-	OpenSSL_add_all_algorithms();
-	OpenSSL_add_all_ciphers();
-	ERR_load_crypto_strings();
 
 	// An exponent for the key.
 	BIGNUM * bn = BN_new();
@@ -74,7 +70,7 @@ void GenRSAPrivateKey(const char * filename = "../private.pem", const char * pas
 	fclose(file);
 }
 
-void SavePrivateKey(EVP_PKEY * pkey, const char * filename = "../private.pem", const char * passphrase = "Himanshu")
+void SavePrivateKey(EVP_PKEY * pkey, const char * filename, const char * passphrase)
 {
 	FILE * file = fopen(filename, "wb");
 
@@ -100,13 +96,13 @@ void SavePrivateKey(EVP_PKEY * pkey, const char * filename = "../private.pem", c
 	fclose(file);
 }
 
-EVP_PKEY * GetPrivateKey(const char * filename = "../private.pem", const char * passphrase = "Himanshu")
+EVP_PKEY * GetPrivateKey(const char * filename)
 {
-	EVP_PKEY ** pkey = new (EVP_PKEY *)(EVP_PKEY_new());
+	EVP_PKEY * pkey = EVP_PKEY_new();
 	FILE * file = fopen(filename, "rb");
-	PEM_read_PrivateKey(file, pkey, NULL, NULL);
+	PEM_read_PrivateKey(file, &pkey, NULL, NULL);
 	fclose(file);
-	return *pkey;
+	return pkey;
 }
 
 std::string GenerateMD5(const uint8_t data[])
