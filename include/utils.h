@@ -5,6 +5,11 @@
 
 #include "openssl/rsa.h"
 
+namespace LibOpenSSL {
+
+#define ERROR(str) fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, str);
+	
+
 void print(BIGNUM * bn, const char * sep = ":")
 {
 	std::cout << bn->dmax << std::endl;
@@ -27,4 +32,6 @@ void printKey(RSA * rsa)
 	print(rsa->e);
 	std::cout << "Private Exponent: ";
 	print(rsa->d);
+}
+
 }

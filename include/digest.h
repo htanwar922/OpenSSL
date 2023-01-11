@@ -8,6 +8,8 @@
 #include "openssl/md5.h"
 #include "openssl/sha.h"
 
+namespace LibOpenSSL {
+
 std::string GenerateMD5(const uint8_t data[])
 {
 	uint8_t digest[MD5_DIGEST_LENGTH];
@@ -32,4 +34,6 @@ std::string GenerateSHA1(const uint8_t data[])
 	
 	printf("Message Digest:\n%s\n", messageDigestString);
 	return messageDigestString;
+}
+
 }

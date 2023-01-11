@@ -5,7 +5,8 @@
 
 #include "openssl/rsa.h"
 #include "openssl/pem.h"
-// #include "openssl/err.h"
+
+namespace LibOpenSSL {
 
 void GenRSAPrivateKey(const char * filename = "../private.pem", const char * passphrase = "Himanshu")
 {
@@ -45,6 +46,7 @@ void SavePrivateKey(EVP_PKEY * pkey, const char * filename, const char * passphr
 {
 	FILE * file = fopen(filename, "wb");
 
+	//// #include "openssl/err.h"
 	// OpenSSL_add_all_algorithms();
 	// OpenSSL_add_all_ciphers();
 	// ERR_load_crypto_strings();
@@ -74,4 +76,6 @@ EVP_PKEY * GetPrivateKey(const char * filename)
 	PEM_read_PrivateKey(file, &pkey, NULL, NULL);
 	fclose(file);
 	return pkey;
+}
+
 }
