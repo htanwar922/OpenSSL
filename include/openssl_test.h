@@ -102,11 +102,11 @@ void SavePrivateKey(EVP_PKEY * pkey, const char * filename = "../private.pem", c
 
 EVP_PKEY * GetPrivateKey(const char * filename = "../private.pem", const char * passphrase = "Himanshu")
 {
-	EVP_PKEY ** pkey = new (EVP_PKEY *)(EVP_PKEY_new());
+	EVP_PKEY * pkey = EVP_PKEY_new();
 	FILE * file = fopen(filename, "rb");
-	PEM_read_PrivateKey(file, pkey, NULL, NULL);
+	PEM_read_PrivateKey(file, &pkey, NULL, NULL);
 	fclose(file);
-	return *pkey;
+	return pkey;
 }
 
 std::string GenerateMD5(const uint8_t data[])
