@@ -7,6 +7,7 @@
 
 #include "openssl/md5.h"
 #include "openssl/sha.h"
+#include "openssl/evp.h"
 
 namespace LibOpenSSL {
 
@@ -34,6 +35,25 @@ std::string GenerateSHA1(const uint8_t data[])
 	
 	printf("Message Digest:\n%s\n", messageDigestString);
 	return messageDigestString;
+}
+
+// openssl dgst -sha256
+// openssl sha256
+uint8_t * MessageDigest(const uint8_t data[], uint32_t len, uint32_t * md_len, const char * algorithm)
+{
+	// OpenSSL_add_all_digests();
+	const EVP_MD * md = EVP_get_digestbyname(algorithm);	// EVP_sha256();
+	uint8_t * digest = new uint8_t[EVP_MAX_MD_SIZE];
+	
+	EVP_MD_CTX * ctx = EVP_MD_CTX_create();		// EVP_MD_CTX_new in OpenSSL 1.1.0+
+	EVP_MD_CTX_init(ctx);
+	EVP_DigestInit(ctx, md);
+	EVP_DigestUpdate(ctx, data, len);			// Repeat for more data blocks before finishing.
+	// EVP_DigestUpdate(ctx, data2, len);
+	EVP_DigestFinal(ctx, digest, md_len);
+	EVP_MD_CTX_cleanup(ctx);					// EVP_MD_CTX_free in OpenSSL 1.1.0+
+	
+	return digest;
 }
 
 }

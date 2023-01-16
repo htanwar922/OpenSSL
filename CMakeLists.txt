@@ -4,6 +4,7 @@ project(OpenSSL_C++ VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
+set(CMAKE_CXX_STANDARD 11)
 add_subdirectory(src)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
