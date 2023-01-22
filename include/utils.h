@@ -7,7 +7,10 @@
 
 namespace LibOpenSSL {
 
-#define ERROR(str) fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, str);
+#define ERROR(str) {\
+	fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, str);	\
+	ERR_print_errors_fp(stderr);	\
+}
 	
 
 void print(BIGNUM * bn, const char * sep = ":")

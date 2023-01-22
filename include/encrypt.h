@@ -15,6 +15,11 @@
 // - key		: the key to be used by the cipher.
 // - iv			: the initialization vector - a hex number.
 
+// openssl enc -aes-256-cbc -k <passphrase> -P/p =====> salt, key, iv
+// openssl enc -nosalt -aes-256-cbc -in message.txt -out message.txt.enc -base64 -K <key> -iv <iv>
+// openssl enc -nosalt -aes-256-cbc -d -in message.txt.enc -base64 -K <key> -iv <iv>
+// echo -en "Hello World" | openssl enc -nosalt -aes-256-cbc -k <key> -iv <iv> | hexdump -C # (or xxd)
+// echo -en "Hello World" | openssl enc -nosalt -aes-256-cbc -k <key> -iv <iv> | openssl enc -d -nosalt -aes-256-cbc -k <key> -iv <iv>
 namespace LibOpenSSL {
 
 // AES CBC 256-bit encryption class
@@ -28,12 +33,6 @@ private:
 public:
 	AES_CBC_256()
 	{
-		// openssl enc -aes-256-cbc -k <passphrase> -P/p =====> salt, key, iv
-		// openssl enc -nosalt -aes-256-cbc -in message.txt -out message.txt.enc -base64 -K <key> -iv <iv>
-		// openssl enc -nosalt -aes-256-cbc -d -in message.txt.enc -base64 -K <key> -iv <iv>
-		// echo -en "Hello World" | openssl enc -nosalt -aes-256-cbc -k <key> -iv <iv> | hexdump -C # (or xxd)
-		// echo -en "Hello World" | openssl enc -nosalt -aes-256-cbc -k <key> -iv <iv> | openssl enc -d -nosalt -aes-256-cbc -k <key> -iv <iv>
-		
 		// key = new uint8_t[32];
 		// iv = new uint8_t[AES_BLOCK_SIZE];
 		// RAND_bytes((uint8_t *)key, 32);
@@ -44,7 +43,7 @@ public:
 		iv = new uint8_t[AES_BLOCK_SIZE]{0x62, 0xbd, 0x85, 0x45, 0x50, 0x6a, 0xfc, 0xa8, 0xd6, 0xe7, 0x1f, 0x06, 0x6b, 0xa3, 0xe7, 0xa0};
 	}
 
-	int Encrypt(const uint8_t * plaintext, int len, uint8_t * ciphertext)
+	int Encrypt(const uint8_t * plaintext, int len, uint8_t * &ciphertext)
 	{
 		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
 		if(ERR_LIB_NONE != EVP_EncryptInit(ctx, EVP_get_cipherbyname("AES-256-CBC"), key, (const uint8_t *)iv)) {	// EVP_aes_256_cbc();
@@ -65,21 +64,21 @@ public:
 		return retLength1 + retLength2;
 	}
 
-	int Decrypt(const uint8_t * ciphertext, int len, uint8_t * plaintext)
+	int Decrypt(const uint8_t * ciphertext, int len, uint8_t * &plaintext)
 	{
 		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
 		if(ERR_LIB_NONE != EVP_DecryptInit(ctx, EVP_get_cipherbyname("AES-256-CBC"), key, (const uint8_t *)iv)) {	// EVP_aes_256_cbc();
-			ERROR("EVP_EncryptInit error\n");
+			ERROR("EVP_DecryptInit error\n");
 			return -1;
 		}
 		int retLength1 = 0;
 		if(ERR_LIB_NONE != EVP_DecryptUpdate(ctx, plaintext, &retLength1, ciphertext, len)) {	// Repeat for more ciphertext blocks before finishing.
-			ERROR("EVP_EncryptUpdate error\n");
+			ERROR("EVP_DecryptUpdate error\n");
 			return -1;
 		}
 		int retLength2 = 0;
 		if(ERR_LIB_NONE != EVP_DecryptFinal(ctx, plaintext + retLength1, &retLength2)) {
-			ERROR("EVP_EncryptFinal error\n");
+			ERROR("EVP_DecryptFinal error\n");
 			return -1;
 		}
 		EVP_CIPHER_CTX_free(ctx);

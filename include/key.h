@@ -6,9 +6,188 @@
 #include "openssl/rsa.h"
 #include "openssl/pem.h"
 
+#include "utils.h"
+
+// openssl genrsa -des3 -out private.pem 2048
+// openssl rsa -in private.pem -pubout | openssl rsa -pubin -text -noout
+// openssl rsa -in private.pem -out public.pem -pubout
+// openssl rsa -in private.pem -inform PEM -text -noout
+// openssl rsa -in public.pem -inform PEM -text -noout -pubin
+
 namespace LibOpenSSL {
 
-void GenRSAPrivateKey(const char * filename = "../private.pem", const char * passphrase = "Himanshu")
+class PKey
+{
+private:
+	EVP_PKEY * pkey = NULL;
+public:
+	PKey()
+	{
+	}
+	
+	EVP_PKEY * GenPrivateKey(int algorithm_id = EVP_PKEY_RSA, uint32_t bits = 2048)
+	{
+		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new_id(algorithm_id, NULL);
+		EVP_PKEY_keygen_init(ctx);
+		switch (algorithm_id)
+		{
+		case EVP_PKEY_RSA:
+			EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, bits);
+			break;
+		case EVP_PKEY_DSA:
+		case EVP_PKEY_EC:
+		case EVP_PKEY_HMAC:
+		case EVP_PKEY_CMAC:
+		case EVP_PKEY_DH:
+		case EVP_PKEY_NONE:
+		default:
+			break;
+		}
+		EVP_PKEY_keygen(ctx, &pkey);
+		EVP_PKEY_CTX_free(ctx);
+		return pkey;
+	}
+
+	size_t Encrypt(const uint8_t * plaintext, size_t len, uint8_t * &ciphertext)
+	{
+		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new(pkey, NULL);
+		if(ERR_LIB_NONE != EVP_PKEY_encrypt_init(ctx)) {
+			ERROR("EVP_PKEY_encrypt_init error\n");
+			return -1;
+		}
+		size_t retLength = 0;
+		if(ERR_LIB_NONE != EVP_PKEY_encrypt(ctx, NULL, &retLength, plaintext, len)) {
+			ERROR("EVP_PKEY_encrypt error\n");
+			return -1;
+		}
+		ciphertext = (uint8_t *)OPENSSL_malloc(retLength);
+		if(ERR_LIB_NONE != EVP_PKEY_encrypt(ctx, ciphertext, &retLength, plaintext, len)) {
+			ERROR("EVP_PKEY_encrypt error\n");
+			return -1;
+		}
+		EVP_PKEY_CTX_free(ctx);
+		return retLength;
+	}
+
+	size_t Decrypt(const uint8_t * ciphertext, size_t len, uint8_t * &plaintext)
+	{
+		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new(pkey, NULL);
+		if(ERR_LIB_NONE != EVP_PKEY_decrypt_init(ctx)) {
+			ERROR("EVP_PKEY_decrypt_init error\n");
+			return -1;
+		}
+		// EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING);
+		size_t retLength = 0;
+		if(ERR_LIB_NONE != EVP_PKEY_decrypt(ctx, NULL, &retLength, ciphertext, len)) {
+			ERROR("EVP_PKEY_decrypt error\n");
+			return -1;
+		}
+		plaintext = (uint8_t *)OPENSSL_malloc(retLength);
+		if(ERR_LIB_NONE != EVP_PKEY_decrypt(ctx, plaintext, &retLength, ciphertext, len)) {
+			ERROR("EVP_PKEY_decrypt error\n");
+			return -1;
+		}
+		EVP_PKEY_CTX_free(ctx);
+		return retLength;
+	}
+
+	void SaveKey(const char * filename = SOURCE_DIR"/private.pem", const char * key_type = "private", const char * passphrase = "Himanshu")
+	{
+		FILE * file = fopen(filename, "wb");
+		int ret = -1;
+		if(strcmp("private", key_type) == 0)
+			switch (EVP_PKEY_type(EVP_PKEY_base_id(pkey)))
+			{
+			case EVP_PKEY_RSA:
+				ret = PEM_write_RSAPrivateKey(
+					file,					// FILE struct to write to
+					pkey->pkey.rsa,					// EVP_PKEY struct
+					EVP_aes_128_cbc(),		// default EVP_CIPHER for encrypting the key on disk
+					(uint8_t *)passphrase,	// passphrase for encrypting the key on disk
+					strlen(passphrase),		// length of the passphrase string
+					NULL,					// callback for requesting a password // pem_password_cb
+					NULL					// user data to pass to the callback
+				);
+				break;
+			case EVP_PKEY_DSA:
+				break;
+			case EVP_PKEY_EC:
+				break;
+			case EVP_PKEY_HMAC:
+				break;
+			case EVP_PKEY_CMAC:
+				break;
+			case EVP_PKEY_DH:
+				break;
+			default:
+				break;
+			}
+		else
+			ret = PEM_write_PUBKEY(file, pkey);
+		fclose(file);
+	}
+
+	EVP_PKEY * GetKey(const char * filename, const char * key_type = "private")
+	{
+		if(pkey) EVP_PKEY_free(pkey);
+		pkey = EVP_PKEY_new();
+		FILE * file = fopen(filename, "rb");
+		if(strcmp("private", key_type) == 0)
+			PEM_read_PrivateKey(file, &pkey, NULL, NULL);
+		else
+			PEM_read_PUBKEY(file, &pkey, NULL, NULL);
+		fclose(file);
+		return pkey;
+	}
+
+	const char * GetType()
+	{
+		const char * algorithm;
+		int algorithm_id = EVP_PKEY_base_id(pkey);
+		switch (EVP_PKEY_type(algorithm_id))
+		{
+		case EVP_PKEY_RSA:
+			algorithm = "EVP_PKEY_RSA";
+			break;
+		case EVP_PKEY_DSA:
+			algorithm = "EVP_PKEY_DSA";
+			break;
+		case EVP_PKEY_EC:
+			algorithm = "EVP_PKEY_EC";
+			break;
+		case EVP_PKEY_HMAC:
+			algorithm = "EVP_PKEY_HMAC";
+			break;
+		case EVP_PKEY_CMAC:
+			algorithm = "EVP_PKEY_CMAC";
+			break;
+		case EVP_PKEY_DH:
+			algorithm = "EVP_PKEY_DH";
+			break;
+		default:
+			algorithm = "EVP_PKEY_NONE";
+			break;
+		}
+		return algorithm;
+	}
+
+	void PrintKey(const char * key_type = "public")
+	{
+		BIO * bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
+		if(strcmp("private", key_type) == 0)
+			EVP_PKEY_print_private(bio_out, pkey, 0, NULL);
+		else
+			EVP_PKEY_print_public(bio_out, pkey, 0, NULL);
+		BIO_free(bio_out);
+	}
+
+	~PKey()
+	{
+		if(pkey) EVP_PKEY_free(pkey);
+	}
+};
+
+void GenRSAPrivateKey(const char * filename = SOURCE_DIR"/private.pem", const char * passphrase = "Himanshu")
 {
 	FILE * file = fopen(filename, "wb");
 
@@ -36,8 +215,12 @@ void GenRSAPrivateKey(const char * filename = "../private.pem", const char * pas
 		NULL					// user data to pass to the callback
 	);
 
-	RSA_free(rsa);
+	// EVP_PKEY * pkey = EVP_PKEY_new();
+	// EVP_PKEY_assign_RSA(pkey, rsa);
+	// SavePrivateKey(pkey, filename, passphrase);
 	// EVP_PKEY_free(pkey);	// The RSA structure will be automatically freed.
+
+	RSA_free(rsa);
 	BN_free(bn);
 	fclose(file);
 }
@@ -45,6 +228,7 @@ void GenRSAPrivateKey(const char * filename = "../private.pem", const char * pas
 void SavePrivateKey(EVP_PKEY * pkey, const char * filename, const char * passphrase)
 {
 	FILE * file = fopen(filename, "wb");
+	// BIO * file = BIO_new_file(filename, "wb");
 
 	//// #include "openssl/err.h"
 	// OpenSSL_add_all_algorithms();
@@ -55,11 +239,11 @@ void SavePrivateKey(EVP_PKEY * pkey, const char * filename, const char * passphr
 	// EVP_PKEY * pkey = EVP_PKEY_new();
 	// EVP_PKEY_assign_RSA(pkey, rsa);
 
-	int ret = PEM_write_PrivateKey(
+	int ret = PEM_write_PKCS8PrivateKey(
 		file,					// FILE struct to write to
 		pkey,					// EVP_PKEY struct
 		EVP_aes_128_cbc(),		// default EVP_CIPHER for encrypting the key on disk
-		(uint8_t *)passphrase,	// passphrase for encrypting the key on disk
+		(char *)passphrase,		// passphrase for encrypting the key on disk
 		strlen(passphrase),		// length of the passphrase string
 		NULL,					// callback for requesting a password // pem_password_cb
 		NULL					// user data to pass to the callback
@@ -67,6 +251,7 @@ void SavePrivateKey(EVP_PKEY * pkey, const char * filename, const char * passphr
 
 	// EVP_PKEY_free(pkey);	// The RSA structure will be automatically freed.
 	fclose(file);
+	// BIO_free(file);
 }
 
 EVP_PKEY * GetPrivateKey(const char * filename)

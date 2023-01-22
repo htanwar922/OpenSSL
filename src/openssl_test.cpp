@@ -10,7 +10,8 @@ using namespace LibOpenSSL;
 
 int main(int argc, char ** argv)
 {
-	const char * filename = "../private.pem";
+	printf("Source dir : %s\n", SOURCE_DIR);
+	const char * filename = SOURCE_DIR"/private.pem";
 	const char * passphrase = "Himanshu";
 
 	OpenSSL_add_all_algorithms();
@@ -27,14 +28,15 @@ int main(int argc, char ** argv)
 	// EVP_PKEY * pkey = GetPrivateKey(filename);
 	// printKey(pkey->pkey.rsa);
 	// EVP_PKEY_print_private(bio_out, pkey, 0, NULL);
+	// EVP_PKEY_free(pkey);
 
 	uint8_t * plaintext = (uint8_t *)"Hello World! How is it?\n";
-	uint8_t ciphertext[1024] = {0};
+	uint8_t * ciphertext = new uint8_t[1024];
 
 	AES_CBC_256 encodeObject = AES_CBC_256();
-	int ciphertext_len = encodeObject.Encrypt(plaintext, strlen((char *)plaintext), ciphertext);
+	size_t ciphertext_len = encodeObject.Encrypt(plaintext, strlen((char *)plaintext), ciphertext);
 
-	BIO_printf(bio_out, "Key is:\n");
+	BIO_printf(bio_out, "AES-256-CBC Key is:\n");
 	BIO_dump(bio_out, (const char *)encodeObject.GetKey(), 32);
 	BIO_printf(bio_out, "IV is:\n");
 	BIO_dump(bio_out, (const char *)encodeObject.GetIV(), AES_BLOCK_SIZE);
@@ -45,8 +47,34 @@ int main(int argc, char ** argv)
 	uint8_t * digest = MessageDigest(ciphertext, ciphertext_len, &digest_len, "sha256");
 	BIO_printf(bio_out, "Digest is:\n");
 	BIO_dump(bio_out, (const char *)digest, digest_len);
+
+	delete[] ciphertext;
+	delete[] digest;
+
+	PKey pkey;
+	// pkey.GenPrivateKey(EVP_PKEY_RSA, 2048);
+	// pkey.SaveKey(SOURCE_DIR"/private.pem", "private", "Himanshu");
+	// pkey.SaveKey(SOURCE_DIR"/public.pem", "public");
+
+	// pkey.GetKey(SOURCE_DIR"/private.pem", "private");
+	// pkey.PrintKey("private");
+
+	pkey.GetKey(SOURCE_DIR"/public.pem", "public");
+	// pkey.PrintKey("public");
+	ciphertext_len = pkey.Encrypt((const uint8_t *)"Hello", 5U, ciphertext);
+	BIO_printf(bio_out, "Ciphertext is: %lu\n", ciphertext_len);
+	BIO_dump(bio_out, (const char *)ciphertext, ciphertext_len);
 	
-	// EVP_PKEY_free(pkey);
+	pkey.GetKey("../private.pem", "private");
+	// pkey.PrintKey("public");
+	uint8_t * text = NULL;
+	int plaintext_len = pkey.Decrypt(ciphertext, ciphertext_len, text);
+	BIO_printf(bio_out, "Plaintext is:\n");
+	BIO_dump(bio_out, (const char *)plaintext, plaintext_len);
+
+
+	delete[] ciphertext;
+
 	BIO_free(bio_out);
 	return 0;
 }
