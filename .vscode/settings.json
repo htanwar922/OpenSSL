@@ -44,6 +44,9 @@
 		"cstdarg": "cpp",
 		"iomanip": "cpp",
 		"cinttypes": "cpp",
-		"cerrno": "cpp"
+		"cerrno": "cpp",
+		"bitset": "cpp",
+		"list": "cpp",
+		"string": "cpp"
 	}
 }

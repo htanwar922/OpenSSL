@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 11)
 add_definitions(-DSOURCE_DIR="${PROJECT_SOURCE_DIR}/")
 # configure_file(include/openssl_test.h include/openssl_test.hpp)
 add_subdirectory(src)
+add_subdirectory(ipc)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
