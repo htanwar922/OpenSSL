@@ -2,16 +2,17 @@
 
 #include "iostream"
 #include "iomanip"
+#include "cstring"
+#include "cerrno"
 
 #include "openssl/rsa.h"
 
 namespace LibOpenSSL {
 
 #define ERROR(str) {\
-	fprintf(stderr, "%s:%d %s\n", __FILE__, __LINE__, str);	\
+	fprintf(stderr, "%s:%d %s\n%s\n", __FILE__, __LINE__, str, std::strerror(errno));	\
 	ERR_print_errors_fp(stderr);	\
 }
-	
 
 void print(BIGNUM * bn, const char * sep = ":")
 {

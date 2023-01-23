@@ -43,6 +43,7 @@
 		"utility": "cpp",
 		"cstdarg": "cpp",
 		"iomanip": "cpp",
-		"cinttypes": "cpp"
+		"cinttypes": "cpp",
+		"cerrno": "cpp"
 	}
 }
