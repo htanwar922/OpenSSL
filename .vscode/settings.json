@@ -47,6 +47,14 @@
 		"cerrno": "cpp",
 		"bitset": "cpp",
 		"list": "cpp",
-		"string": "cpp"
+		"string": "cpp",
+		"atomic": "cpp",
+		"strstream": "cpp",
+		"complex": "cpp",
+		"csignal": "cpp",
+		"algorithm": "cpp",
+		"thread": "cpp",
+		"cfenv": "cpp",
+		"typeindex": "cpp"
 	}
 }

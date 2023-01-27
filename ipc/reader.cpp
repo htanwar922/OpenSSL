@@ -1,45 +1,84 @@
-#include <iostream>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <cstdio>
-#include <cstring>
-#include <csignal>
+#include "iostream"
+#include "string"
+#include "cstdio"
+#include "cstring"
+#include "csignal"
+#include "cstdlib"
+#include "semaphore.h"
+#include "sys/ipc.h"
+#include "sys/shm.h"
+#include "sys/sem.h"
 
-#include <unistd.h>
+#include "binary_semaphore.h"
 
-#define MEMSIZE 1024
+#define SHMEM_SIZE (1024 + 1)
 
 int main()
 {
-	key_t key = ftok("shmfile", 65);								// generate unique key
-	static int shmid = shmget(key, MEMSIZE + 1, 0666|IPC_CREAT);	// rwcrw-rw-
-	static char * str = (char *)shmat(shmid, (void*)0, 0);			// attach to shared memory
-
-	struct sigaction Action;
-	Action.sa_handler = [](int s) {
-		printf("Received signal : %d\n", s);
-		shmdt(str);
-		shmctl(shmid, IPC_RMID, NULL);
-		exit(s);
-	};
-	sigemptyset(&Action.sa_mask);
-	Action.sa_flags = 0;
-	sigaction(SIGINT, &Action, NULL);
-
-	std::cout << key << " " << shmid << " " << (void *)str << " " << (int)str[0] << std::endl;
-	while (true)
-	{
-		if(str[0] == 0) {
-			str[0] = 1;
-			std::cout << "SHMEM RD > " << str + 1;
-			memset(str + 1, 0, MEMSIZE);
-			str[0] = 0;
-			sleep(1000);
+	key_t key;
+	static int shmid;
+	static char * str;
+	static int semid;
+	std::string buf;
+	
+	if((key = ftok("shared_file", 1)) == (key_t)-1) {		// file name, proj id
+		perror("IPC error: ftok"); exit(errno);
+	}
+	CreateSemaphore(semid, key);
+	if((shmid = shmget(key, 0, 0)) == -1) {
+		perror("IPC warning: shmget - creating new.");
+		if((shmid = shmget(key, SHMEM_SIZE, IPC_CREAT | 0666)) == -1) {
+			perror("IPC error: shmget");
+			if (errno == EEXIST) {
+				if ((semid = shmget(key, 0, 0)) == -1) {
+					perror("IPC error 1: shmget"); exit(errno);
+				}
+			}
+			else {
+				perror("IPC error 2: shmget"); exit(errno);
+			}
 		}
 	}
+	if((str = (char *)shmat(shmid, (void *)0, 0)) == NULL) {
+		perror("IPC error: shmat"); exit(errno);
+	}
+
+	std::cout << key << " ";
+	std::cout << shmid << " ";
+	std::cout << semid << " ";
+	std::cout << (size_t)str << std::endl;
+
+	struct sigaction SigIntHandler;
+	SigIntHandler.sa_handler = [](int s) {
+		printf("Caught signal %d\n", s);
+		shmdt(str);
+		shmctl(shmid, IPC_RMID, NULL);
+		int r = semctl(semid, 0, IPC_RMID);
+		exit(r);
+	};
+	sigemptyset(&SigIntHandler.sa_mask);
+	SigIntHandler.sa_flags = 0;
+	sigaction(SIGINT, &SigIntHandler, NULL);
+	
+	do {
+		if(Wait(semid)) {
+			if(strlen(str)) {
+				buf = str;
+				std::cout << "SHMEM RD > " << buf << std::endl;
+				memset(str, 0, SHMEM_SIZE - 1);
+			}
+			Signal(semid);
+		}
+		else {
+			perror("IPC error: Semaphore Wait.");
+			perror(NULL);
+			shmdt(str);
+			shmctl(shmid, IPC_RMID, NULL);
+			semctl(semid, 0, IPC_RMID);
+			exit(errno);
+		}
+	} while(true);
 
 	shmdt(str);
 	shmctl(shmid, IPC_RMID, NULL);
-
-	return 0;
 }

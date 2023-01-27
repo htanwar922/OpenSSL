@@ -1,6 +1,6 @@
 #pragma once
 
-#include "string.h"
+#include "cstring"
 #include "stdint.h"
 
 #include "openssl/bio.h"

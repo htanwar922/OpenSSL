@@ -1,8 +1,8 @@
 #pragma once
 
-#include "stdio.h"
 #include "string"
-#include "string.h"
+#include "cstdio"
+#include "cstring"
 #include "stdint.h"
 
 #include "openssl/md5.h"

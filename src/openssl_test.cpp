@@ -14,10 +14,12 @@ int main(int argc, char ** argv)
 	const char * filename = SOURCE_DIR"/private.pem";
 	const char * passphrase = "Himanshu";
 
+	ERR_load_crypto_strings();
 	OpenSSL_add_all_algorithms();
 	OpenSSL_add_all_ciphers();
 	OpenSSL_add_all_digests();
-	ERR_load_crypto_strings();
+	// OPENSSL_config(NULL); // Load default configuration (e.g. openssl.conf)
+	// OPENSSL_init_ssl(0, NULL);
 	
 	BIO * bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 	BIO_printf(bio_out, "Hello World\n");
@@ -76,5 +78,12 @@ int main(int argc, char ** argv)
 	delete[] ciphertext;
 
 	BIO_free(bio_out);
+
+	// CONF_modules_unload(1);
+	EVP_cleanup();
+	CRYPTO_cleanup_all_ex_data();
+	// ERR_remove_state(pid);
+	ERR_free_strings();
+
 	return 0;
 }
