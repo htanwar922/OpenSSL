@@ -38,4 +38,4 @@ void printKey(RSA * rsa)
 	print(rsa->d);
 }
 
-}
+} // namespace LibOpenSSL

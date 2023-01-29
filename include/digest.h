@@ -73,4 +73,4 @@ void PrintDigest(const uint8_t * digest, int len)
 	BIO_free(bio_out);
 }
 
-}
+} // namespace LibOpenSSL

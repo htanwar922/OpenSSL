@@ -1,10 +1,4 @@
-#include "openssl/err.h"
-
 #include "openssl_test.h"
-#include "encode.h"
-#include "key.h"
-#include "encrypt.h"
-#include "digest.h"
 
 using namespace LibOpenSSL;
 

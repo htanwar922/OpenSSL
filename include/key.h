@@ -263,4 +263,4 @@ EVP_PKEY * GetPrivateKey(const char * filename)
 	return pkey;
 }
 
-}
+} // namespace LibOpenSSL

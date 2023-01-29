@@ -107,7 +107,7 @@ public:
 	}
 };
 
-}
+} // namespace LibOpenSSL
 
 /** LOW LEVEL ENCRYPTION DIRECTLY USING AES FUNCTIONS
 

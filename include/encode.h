@@ -32,4 +32,4 @@ void Base64(BIO * bio_out, const uint8_t * str, int len = 0)
 	BIO_free(bio_base64);	// Alternatively, BIO_free_all(bio_base64);
 }
 
-}
+} // namespace LibOpenSSL
