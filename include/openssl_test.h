@@ -18,7 +18,15 @@ namespace LibOpenSSL {
 struct Message
 {
 	size_t Len = 0;
-	uint8_t Body[MAX_BUFFER_SIZE] {0};
+	uint8_t * Body = NULL;
+	Message()
+	{
+		Body = new uint8_t[MAX_BUFFER_SIZE];
+	}
+	~Message()
+	{
+		delete[] Body;
+	}
 };
 
 

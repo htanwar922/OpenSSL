@@ -13,13 +13,24 @@
 #include "shared_memory.h"
 #include "openssl_test.h"
 
-#define SHMEM_SIZE (1024 + 1)
+#define SHMEM_SIZE (MAX_BUFFER_SIZE + sizeof(size_t))
+
+using namespace LibOpenSSL;
 
 int main()
 {
+	printf("Source dir : %s\n", SOURCE_DIR);
+	const char * filename = SOURCE_DIR"/private.pem";
+	const char * passphrase = "Himanshu";
+
+	ERR_load_crypto_strings();
+	OpenSSL_add_all_algorithms();
+	OpenSSL_add_all_ciphers();
+	OpenSSL_add_all_digests();
+	
 	static Semaphore semaphore("/tmp", 1, 1, 1);
 	static Semaphore semaphoreInstances("/tmp", 2, 1, 0);
-	static SharedMemory shmem("/tmp", 1, SHMEM_SIZE);
+	static SharedMemory shmem("/tmp", 1, SHMEM_SIZE + 1);
 	static char * str = (char *)shmem.GetSharedMemoryAddress();
 	
 	struct sigaction SigIntHandler;
@@ -38,15 +49,28 @@ int main()
 	SigIntHandler.sa_flags = 0;
 	sigaction(SIGINT, &SigIntHandler, NULL);
 
-	std::string buf;
+	BIO * bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
+	AES_CBC_256 encodeObject = AES_CBC_256();
+	Message textMessage, byteMessage;
+
 	semaphoreInstances.Signal();
+	std::cout << "\nSHMEM WR > ";
+	std::cout.flush();
 	do {
-		buf.clear();
-		std::cout << "SHMEM WR > ";
-		std::getline(std::cin, buf);
+		std::cin.getline((char *)textMessage.Body, MAX_BUFFER_SIZE);
+		textMessage.Len = strlen((char *)textMessage.Body);
 		if(semaphore.Wait()) {
-			memcpy(str, buf.c_str(), SHMEM_SIZE - 1);
-			printf("Written : %s\n", str);
+			{
+				byteMessage.Len = encodeObject.Encrypt(textMessage.Body, textMessage.Len, byteMessage.Body);
+				memcpy(str, (uint8_t *)&byteMessage.Len, sizeof(byteMessage.Len));
+				memcpy(str + sizeof(byteMessage.Len), byteMessage.Body, byteMessage.Len);
+
+				printf("Written :\n");
+				encodeObject.PrintCiphertext(byteMessage.Body, byteMessage.Len);
+				
+				std::cout << "\nSHMEM WR > ";
+				std::cout.flush();
+			}
 			semaphore.Signal();
 		}
 		else {

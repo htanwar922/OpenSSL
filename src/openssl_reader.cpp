@@ -13,13 +13,24 @@
 #include "shared_memory.h"
 #include "openssl_test.h"
 
-#define SHMEM_SIZE (1024 + 1)
+#define SHMEM_SIZE (MAX_BUFFER_SIZE + sizeof(size_t))
+
+using namespace LibOpenSSL;
 
 int main()
 {
+	printf("Source dir : %s\n", SOURCE_DIR);
+	const char * filename = SOURCE_DIR"/private.pem";
+	const char * passphrase = "Himanshu";
+
+	ERR_load_crypto_strings();
+	OpenSSL_add_all_algorithms();
+	OpenSSL_add_all_ciphers();
+	OpenSSL_add_all_digests();
+	
 	static Semaphore semaphore("/tmp", 1, 1, 1);
 	static Semaphore semaphoreInstances("/tmp", 2, 1, 0);
-	static SharedMemory shmem("/tmp", 1, SHMEM_SIZE);
+	static SharedMemory shmem("/tmp", 1, SHMEM_SIZE + 1);
 	static char * str = (char *)shmem.GetSharedMemoryAddress();
 
 	struct sigaction SigIntHandler;
@@ -37,15 +48,27 @@ int main()
 	sigemptyset(&SigIntHandler.sa_mask);
 	SigIntHandler.sa_flags = 0;
 	sigaction(SIGINT, &SigIntHandler, NULL);
+
+	BIO * bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
+	AES_CBC_256 encodeObject = AES_CBC_256();
+	Message textMessage, byteMessage;
 	
-	std::string buf;
 	semaphoreInstances.Signal();
+	std::cout << "\nSHMEM RD > ";
+	std::cout.flush();
 	do {
 		if(semaphore.Wait()) {
-			if(strlen(str)) {
-				buf = str;
-				std::cout << "SHMEM RD > " << buf << std::endl;
-				memset(str, 0, SHMEM_SIZE - 1);
+			if(strlen(str + sizeof(byteMessage.Len))) {
+				memcpy((uint8_t *)&byteMessage.Len, (uint8_t *)str, sizeof(byteMessage.Len));
+				memcpy(byteMessage.Body, str + sizeof(byteMessage.Len), byteMessage.Len);
+				textMessage.Len = encodeObject.Decrypt(byteMessage.Body, byteMessage.Len, textMessage.Body);
+				std::cout << textMessage.Body << std::endl;
+				printf("Read %lu bytes:\n", byteMessage.Len);
+				encodeObject.PrintCiphertext(byteMessage.Body, byteMessage.Len);
+				memset(str, 0, SHMEM_SIZE);
+				memset(textMessage.Body, 0, MAX_BUFFER_SIZE);
+				std::cout << "\nSHMEM RD > ";
+				std::cout.flush();
 			}
 			semaphore.Signal();
 		}
