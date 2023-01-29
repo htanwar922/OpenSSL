@@ -1,5 +1,6 @@
 include_directories(
 	${PROJECT_SOURCE_DIR}/include
+	./include
 )
 
 add_executable(writer writer.cpp)

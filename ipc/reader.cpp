@@ -10,75 +10,48 @@
 #include "sys/sem.h"
 
 #include "binary_semaphore.h"
+#include "shared_memory.h"
 
 #define SHMEM_SIZE (1024 + 1)
 
 int main()
 {
-	key_t key;
-	static int shmid;
-	static char * str;
-	static int semid;
-	std::string buf;
-	
-	if((key = ftok("shared_file", 1)) == (key_t)-1) {		// file name, proj id
-		perror("IPC error: ftok"); exit(errno);
-	}
-	CreateSemaphore(semid, key);
-	if((shmid = shmget(key, 0, 0)) == -1) {
-		perror("IPC warning: shmget - creating new.");
-		if((shmid = shmget(key, SHMEM_SIZE, IPC_CREAT | 0666)) == -1) {
-			perror("IPC error: shmget");
-			if (errno == EEXIST) {
-				if ((semid = shmget(key, 0, 0)) == -1) {
-					perror("IPC error 1: shmget"); exit(errno);
-				}
-			}
-			else {
-				perror("IPC error 2: shmget"); exit(errno);
-			}
-		}
-	}
-	if((str = (char *)shmat(shmid, (void *)0, 0)) == NULL) {
-		perror("IPC error: shmat"); exit(errno);
-	}
-
-	std::cout << key << " ";
-	std::cout << shmid << " ";
-	std::cout << semid << " ";
-	std::cout << (size_t)str << std::endl;
+	static Semaphore semaphore("/tmp", 1, 1, 1);
+	static Semaphore semaphoreInstances("/tmp", 2, 1, 0);
+	static SharedMemory shmem("/tmp", 1, SHMEM_SIZE);
+	static char * str = (char *)shmem.GetSharedMemoryAddress();
 
 	struct sigaction SigIntHandler;
 	SigIntHandler.sa_handler = [](int s) {
 		printf("Caught signal %d\n", s);
-		shmdt(str);
-		shmctl(shmid, IPC_RMID, NULL);
-		int r = semctl(semid, 0, IPC_RMID);
-		exit(r);
+		semaphoreInstances.Wait();
+		if(semaphoreInstances.GetCount() == 0)
+		{
+			semaphoreInstances.DestroySemaphore();
+			semaphore.DestroySemaphore();
+			printf("Semaphores Destroyed.\n");
+		}
+		exit(0);
 	};
 	sigemptyset(&SigIntHandler.sa_mask);
 	SigIntHandler.sa_flags = 0;
 	sigaction(SIGINT, &SigIntHandler, NULL);
 	
+	std::string buf;
+	semaphoreInstances.Signal();
 	do {
-		if(Wait(semid)) {
+		if(semaphore.Wait()) {
 			if(strlen(str)) {
 				buf = str;
 				std::cout << "SHMEM RD > " << buf << std::endl;
 				memset(str, 0, SHMEM_SIZE - 1);
 			}
-			Signal(semid);
+			semaphore.Signal();
 		}
 		else {
-			perror("IPC error: Semaphore Wait.");
+			perror("IPC error: Semaphore Wait");
 			perror(NULL);
-			shmdt(str);
-			shmctl(shmid, IPC_RMID, NULL);
-			semctl(semid, 0, IPC_RMID);
 			exit(errno);
 		}
 	} while(true);
-
-	shmdt(str);
-	shmctl(shmid, IPC_RMID, NULL);
 }
