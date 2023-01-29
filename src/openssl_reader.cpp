@@ -31,7 +31,7 @@ int main()
 	static Semaphore semaphore("/tmp", 1, 1, 1);
 	static Semaphore semaphoreInstances("/tmp", 2, 1, 0);
 	static SharedMemory shmem("/tmp", 1, SHMEM_SIZE + 1);
-	static char * str = (char *)shmem.GetSharedMemoryAddress();
+	static uint8_t * str = (uint8_t *)shmem.GetSharedMemoryAddress();
 
 	struct sigaction SigIntHandler;
 	SigIntHandler.sa_handler = [](int s) {
@@ -58,8 +58,8 @@ int main()
 	std::cout.flush();
 	do {
 		if(semaphore.Wait()) {
-			if(strlen(str + sizeof(byteMessage.Len))) {
-				memcpy((uint8_t *)&byteMessage.Len, (uint8_t *)str, sizeof(byteMessage.Len));
+			memcpy((uint8_t *)&byteMessage.Len, str, sizeof(byteMessage.Len));
+			if(byteMessage.Len) {
 				memcpy(byteMessage.Body, str + sizeof(byteMessage.Len), byteMessage.Len);
 				textMessage.Len = encodeObject.Decrypt(byteMessage.Body, byteMessage.Len, textMessage.Body);
 				std::cout << textMessage.Body << std::endl;

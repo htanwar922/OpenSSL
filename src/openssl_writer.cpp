@@ -31,7 +31,7 @@ int main()
 	static Semaphore semaphore("/tmp", 1, 1, 1);
 	static Semaphore semaphoreInstances("/tmp", 2, 1, 0);
 	static SharedMemory shmem("/tmp", 1, SHMEM_SIZE + 1);
-	static char * str = (char *)shmem.GetSharedMemoryAddress();
+	static uint8_t * str = (uint8_t *)shmem.GetSharedMemoryAddress();
 	
 	struct sigaction SigIntHandler;
 	SigIntHandler.sa_handler = [](int s) {
@@ -65,9 +65,10 @@ int main()
 				memcpy(str, (uint8_t *)&byteMessage.Len, sizeof(byteMessage.Len));
 				memcpy(str + sizeof(byteMessage.Len), byteMessage.Body, byteMessage.Len);
 
-				printf("Written :\n");
+				printf("Written %lu bytes:\n", byteMessage.Len);
 				encodeObject.PrintCiphertext(byteMessage.Body, byteMessage.Len);
 				
+
 				std::cout << "\nSHMEM WR > ";
 				std::cout.flush();
 			}
