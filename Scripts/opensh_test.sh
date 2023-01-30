@@ -1,11 +1,19 @@
 #!/bin/bash
 
 # key.h
+## generate and store key pair
 openssl genrsa -des3 -out private.pem 2048
 openssl rsa -in private.pem -pubout | openssl rsa -pubin -text -noout
 openssl rsa -in private.pem -out public.pem -pubout
 openssl rsa -in private.pem -inform PEM -text -noout
 openssl rsa -in public.pem -inform PEM -text -noout -pubin
+## encrypt and decrypt
+echo 'Hey babe! Come here I need you!'					\
+	| openssl rsautl -encrypt -pubin -inkey ../public.pem	\
+	| openssl rsautl -decrypt -inkey ../private.pem
+## sign and verify using key pair
+echo -en "Hello World" | openssl dgst -sha256 -sign ../private.pem -out signature.dat
+echo -en "Hello World" | openssl dgst -sha256 -verify ../public.pem -signature signature.dat
 
 ## Self Note
 # -text probably prints in little-endian format of 8 Bytes:-
