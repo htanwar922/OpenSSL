@@ -37,7 +37,7 @@ int main()
 	SigIntHandler.sa_handler = [](int s) {
 		printf("Caught signal %d\n", s);
 		semaphoreInstances.Wait();
-		if(semaphoreInstances.GetCount() == 0)
+		// if(semaphoreInstances.GetCount() == 0)
 		{
 			semaphoreInstances.DestroySemaphore();
 			semaphore.DestroySemaphore();
@@ -50,8 +50,10 @@ int main()
 	sigaction(SIGINT, &SigIntHandler, NULL);
 
 	BIO * bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
-	AES_CBC_256 encodeObject = AES_CBC_256();
-	Message textMessage, byteMessage;
+	AES_CBC_256 encodeObject;
+	PKey pkey;
+	pkey.GetKey("../public.pem", "public");
+	Message textMessage, byteMessage, signMessage;
 	
 	semaphoreInstances.Signal();
 	std::cout << "\nSHMEM RD > ";
@@ -61,10 +63,19 @@ int main()
 			memcpy((uint8_t *)&byteMessage.Len, str, sizeof(byteMessage.Len));
 			if(byteMessage.Len) {
 				memcpy(byteMessage.Body, str + sizeof(byteMessage.Len), byteMessage.Len);
+
+				memcpy((uint8_t *)&signMessage.Len, str + sizeof(byteMessage.Len) + byteMessage.Len, sizeof(signMessage.Len));
+				memcpy(signMessage.Body, str + sizeof(byteMessage.Len) + byteMessage.Len + sizeof(signMessage.Len), signMessage.Len);
+				bool verify = pkey.Verify(byteMessage.Body, byteMessage.Len, signMessage.Body, signMessage.Len, "sha256");
 				textMessage.Len = encodeObject.Decrypt(byteMessage.Body, byteMessage.Len, textMessage.Body);
+
 				std::cout << textMessage.Body << std::endl;
 				printf("Read %lu bytes:\n", byteMessage.Len);
 				encodeObject.PrintCiphertext(byteMessage.Body, byteMessage.Len);
+				printf("Read %lu bytes:\n", signMessage.Len);
+				encodeObject.PrintCiphertext(signMessage.Body, signMessage.Len);
+				printf("Verified : %s\n", verify ? "True" : "False");
+
 				memset(str, 0, SHMEM_SIZE);
 				memset(textMessage.Body, 0, MAX_BUFFER_SIZE);
 				std::cout << "\nSHMEM RD > ";

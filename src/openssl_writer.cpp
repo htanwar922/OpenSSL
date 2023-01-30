@@ -50,8 +50,10 @@ int main()
 	sigaction(SIGINT, &SigIntHandler, NULL);
 
 	BIO * bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
-	AES_CBC_256 encodeObject = AES_CBC_256();
-	Message textMessage, byteMessage;
+	AES_CBC_256 encodeObject;
+	PKey pkey;
+	pkey.GetKey("../private.pem", "private");
+	Message textMessage, byteMessage, signMessage(true);
 
 	semaphoreInstances.Signal();
 	std::cout << "\nSHMEM WR > ";
@@ -60,14 +62,21 @@ int main()
 		std::cin.getline((char *)textMessage.Body, MAX_BUFFER_SIZE);
 		textMessage.Len = strlen((char *)textMessage.Body);
 		if(semaphore.Wait()) {
-			{
+			if(true) {
 				byteMessage.Len = encodeObject.Encrypt(textMessage.Body, textMessage.Len, byteMessage.Body);
 				memcpy(str, (uint8_t *)&byteMessage.Len, sizeof(byteMessage.Len));
 				memcpy(str + sizeof(byteMessage.Len), byteMessage.Body, byteMessage.Len);
 
+				signMessage.Body = pkey.Sign(byteMessage.Body, byteMessage.Len, &signMessage.Len, "sha256");
+				memcpy(str + sizeof(byteMessage.Len) + byteMessage.Len, (uint8_t *)&signMessage.Len, sizeof(signMessage.Len));
+				memcpy(str + sizeof(byteMessage.Len) + byteMessage.Len + sizeof(signMessage.Len), signMessage.Body, signMessage.Len);
+				signMessage.Clear();
+
+				// std::cout << textMessage.Body << std::endl;
 				printf("Written %lu bytes:\n", byteMessage.Len);
 				encodeObject.PrintCiphertext(byteMessage.Body, byteMessage.Len);
-				
+				printf("Written %lu bytes:\n", signMessage.Len);
+				encodeObject.PrintCiphertext(signMessage.Body, signMessage.Len);
 
 				std::cout << "\nSHMEM WR > ";
 				std::cout.flush();

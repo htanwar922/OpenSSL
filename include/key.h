@@ -6,7 +6,7 @@
 #include "openssl/rsa.h"
 #include "openssl/pem.h"
 
-#include "utils.h"
+#include "digest.h"
 
 // openssl genrsa -des3 -out private.pem 2048
 // openssl rsa -in private.pem -pubout | openssl rsa -pubin -text -noout
@@ -76,7 +76,6 @@ public:
 			ERROR("EVP_PKEY_decrypt_init error\n");
 			return -1;
 		}
-		// EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING);
 		size_t retLength = 0;
 		if(ERR_LIB_NONE != EVP_PKEY_decrypt(ctx, NULL, &retLength, ciphertext, len)) {
 			ERROR("EVP_PKEY_decrypt error\n");
@@ -89,6 +88,64 @@ public:
 		}
 		EVP_PKEY_CTX_free(ctx);
 		return retLength;
+	}
+
+	uint8_t * Sign(const uint8_t data[], size_t len, size_t * signLength, const char * algorithm)
+	{
+		uint32_t digestLen = 0;
+		uint8_t * digest = MessageDigest(data, (uint32_t)len, &digestLen, algorithm);
+		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new(pkey, NULL);
+		if(ERR_LIB_NONE != EVP_PKEY_sign_init(ctx)) {
+			ERROR("EVP_PKEY_sign_init error\n");
+			return NULL;
+		}
+		if(ERR_LIB_NONE != EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)) {
+			ERROR("EVP_PKEY_CTX_set_rsa_padding error\n");
+			return NULL;
+		}
+		if(ERR_LIB_NONE != EVP_PKEY_CTX_set_signature_md(ctx, EVP_get_digestbyname(algorithm))) {
+			ERROR("EVP_PKEY_CTX_set_signature_md error\n");
+			return NULL;
+		}
+		if(ERR_LIB_NONE != EVP_PKEY_sign(ctx, NULL, signLength, digest, digestLen)) {
+			ERROR("EVP_PKEY_sign error\n");
+			return NULL;
+		}
+		printf("sign len : %lu\n", *signLength);
+		uint8_t * signature = new uint8_t[*signLength]{0};
+		if(ERR_LIB_NONE != EVP_PKEY_sign(ctx, signature, signLength, digest, digestLen)) {
+			ERROR("EVP_PKEY_sign error\n");
+			return NULL;
+		}
+		EVP_PKEY_CTX_free(ctx);
+		delete[] digest;
+		return signature;
+	}
+
+	bool Verify(const uint8_t data[], size_t len, const uint8_t signature[], size_t signLength, const char * algorithm)
+	{
+		uint32_t digestLen = 0;
+		uint8_t * digest = MessageDigest(data, (uint32_t)len, &digestLen, algorithm);
+		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new(pkey, NULL);
+		if(ERR_LIB_NONE != EVP_PKEY_verify_init(ctx)) {
+			ERROR("EVP_PKEY_verify_init error\n");
+			return false;
+		}
+		if(ERR_LIB_NONE != EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)) {
+			ERROR("EVP_PKEY_CTX_set_rsa_padding error\n");
+			return false;
+		}
+		if(ERR_LIB_NONE != EVP_PKEY_CTX_set_signature_md(ctx, EVP_get_digestbyname(algorithm))) {
+			ERROR("EVP_PKEY_CTX_set_signature_md error\n");
+			return false;
+		}
+		if(ERR_LIB_NONE != EVP_PKEY_verify(ctx, signature, signLength, digest, digestLen)) {
+			ERROR("EVP_PKEY_sign error\n");
+			return false;
+		}
+		EVP_PKEY_CTX_free(ctx);
+		delete[] digest;
+		return true;
 	}
 
 	void SaveKey(const char * filename = SOURCE_DIR"/private.pem", const char * key_type = "private", const char * passphrase = "Himanshu")
