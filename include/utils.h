@@ -6,36 +6,40 @@
 #include "cerrno"
 
 #include "openssl/rsa.h"
+#include "openssl/err.h"
 
 namespace LibOpenSSL {
 
+#ifndef SOURCE_DIR
+#define SOURCE_DIR __FILE__"/../../" // "@PROJECT_SOURCE_DIR@" // use with configure_file in CMakeLists.txt
+#endif
+
 #define ERROR(str) {\
-	fprintf(stderr, "%s:%d %s\n%s\n", __FILE__, __LINE__, str, std::strerror(errno));	\
+	fprintf(stderr, "__ERROR__: %s:%d : %s\n__ERROR__: %s : %s\n__ERROR__: ", \
+		__FILE__, __LINE__, __PRETTY_FUNCTION__, str, std::strerror(errno));	\
 	ERR_print_errors_fp(stderr);	\
 }
 
-void print(BIGNUM * bn, const char * sep = ":")
-{
-	std::cout << bn->dmax << std::endl;
-	std::cout << std::hex;
-	int i=bn->dmax;
-	while(!bn->d[i-1] && --i);
-	while(i--)
-	{
-		std::cout << std::setw(sizeof(unsigned long) << 1) << std::setfill('0') << bn->d[i] << sep;
-		if(!(i % 2)) std::cout << std::endl;
-	}
-	std::cout << std::endl << std::endl;
-}
+#define MAX_BUFFER_SIZE 1024
 
-void printKey(RSA * rsa)
+struct Message
 {
-	std::cout << "Modulus: ";
-	print(rsa->n);
-	std::cout << "Public Exponent: ";
-	print(rsa->e);
-	std::cout << "Private Exponent: ";
-	print(rsa->d);
-}
+	size_t Len = 0;
+	uint8_t * Body = NULL;
+	Message(bool empty = false)
+	{
+		if(not empty)
+			Body = new uint8_t[MAX_BUFFER_SIZE];
+	}
+	void Clear()
+	{
+		if(Body)
+			delete[] Body;
+	}
+	~Message()
+	{
+		Clear();
+	}
+};
 
 } // namespace LibOpenSSL

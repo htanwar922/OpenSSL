@@ -1,41 +1,35 @@
 #pragma once
 
-#ifndef SOURCE_DIR
-#define SOURCE_DIR "../" // "@PROJECT_SOURCE_DIR@" // use with configure_file in CMakeLists.txt
-#endif
-
-#include "openssl/err.h"
-
 #include "utils.h"
 #include "digest.h"
 #include "encode.h"
 #include "key.h"
 #include "encrypt.h"
 
-#define MAX_BUFFER_SIZE 1024
-
 namespace LibOpenSSL {
 
-struct Message
+void print(BIGNUM * bn, const char * sep = ":")
 {
-	size_t Len = 0;
-	uint8_t * Body = NULL;
-	Message(bool empty = false)
+	std::cout << bn->dmax << std::endl;
+	std::cout << std::hex;
+	int i=bn->dmax;
+	while(!bn->d[i-1] && --i);
+	while(i--)
 	{
-		if(not empty)
-			Body = new uint8_t[MAX_BUFFER_SIZE];
+		std::cout << std::setw(sizeof(unsigned long) << 1) << std::setfill('0') << bn->d[i] << sep;
+		if(!(i % 2)) std::cout << std::endl;
 	}
-	void Clear()
-	{
-		if(Body)
-			delete[] Body;
-	}
-	~Message()
-	{
-		Clear();
-	}
-};
+	std::cout << std::endl << std::endl;
+}
 
-
+void printKey(RSA * rsa)
+{
+	std::cout << "Modulus: ";
+	print(rsa->n);
+	std::cout << "Public Exponent: ";
+	print(rsa->e);
+	std::cout << "Private Exponent: ";
+	print(rsa->d);
+}
 
 } // namespace LibOpenSSL

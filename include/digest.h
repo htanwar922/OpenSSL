@@ -9,6 +9,8 @@
 #include "openssl/sha.h"
 #include "openssl/evp.h"
 
+#include "utils.h"
+
 namespace LibOpenSSL {
 
 std::string GenerateMD5(const uint8_t data[])

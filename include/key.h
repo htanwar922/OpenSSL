@@ -7,6 +7,7 @@
 #include "openssl/pem.h"
 
 #include "digest.h"
+#include "openssl_test.h"
 
 // openssl genrsa -des3 -out private.pem 2048
 // openssl rsa -in private.pem -pubout | openssl rsa -pubin -text -noout
@@ -52,17 +53,17 @@ public:
 	{
 		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new(pkey, NULL);
 		if(ERR_LIB_NONE != EVP_PKEY_encrypt_init(ctx)) {
-			ERROR("EVP_PKEY_encrypt_init error\n");
+			ERROR("EVP_PKEY_encrypt_init error");
 			return -1;
 		}
 		size_t retLength = 0;
 		if(ERR_LIB_NONE != EVP_PKEY_encrypt(ctx, NULL, &retLength, plaintext, len)) {
-			ERROR("EVP_PKEY_encrypt error\n");
+			ERROR("EVP_PKEY_encrypt error");
 			return -1;
 		}
 		ciphertext = (uint8_t *)OPENSSL_malloc(retLength);
 		if(ERR_LIB_NONE != EVP_PKEY_encrypt(ctx, ciphertext, &retLength, plaintext, len)) {
-			ERROR("EVP_PKEY_encrypt error\n");
+			ERROR("EVP_PKEY_encrypt error");
 			return -1;
 		}
 		EVP_PKEY_CTX_free(ctx);
@@ -73,17 +74,17 @@ public:
 	{
 		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new(pkey, NULL);
 		if(ERR_LIB_NONE != EVP_PKEY_decrypt_init(ctx)) {
-			ERROR("EVP_PKEY_decrypt_init error\n");
+			ERROR("EVP_PKEY_decrypt_init error");
 			return -1;
 		}
 		size_t retLength = 0;
 		if(ERR_LIB_NONE != EVP_PKEY_decrypt(ctx, NULL, &retLength, ciphertext, len)) {
-			ERROR("EVP_PKEY_decrypt error\n");
+			ERROR("EVP_PKEY_decrypt error");
 			return -1;
 		}
 		plaintext = (uint8_t *)OPENSSL_malloc(retLength);
 		if(ERR_LIB_NONE != EVP_PKEY_decrypt(ctx, plaintext, &retLength, ciphertext, len)) {
-			ERROR("EVP_PKEY_decrypt error\n");
+			ERROR("EVP_PKEY_decrypt error");
 			return -1;
 		}
 		EVP_PKEY_CTX_free(ctx);
@@ -96,25 +97,25 @@ public:
 		uint8_t * digest = MessageDigest(data, (uint32_t)len, &digestLen, algorithm);
 		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new(pkey, NULL);
 		if(ERR_LIB_NONE != EVP_PKEY_sign_init(ctx)) {
-			ERROR("EVP_PKEY_sign_init error\n");
+			ERROR("EVP_PKEY_sign_init error");
 			return NULL;
 		}
 		if(ERR_LIB_NONE != EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)) {
-			ERROR("EVP_PKEY_CTX_set_rsa_padding error\n");
+			ERROR("EVP_PKEY_CTX_set_rsa_padding error");
 			return NULL;
 		}
 		if(ERR_LIB_NONE != EVP_PKEY_CTX_set_signature_md(ctx, EVP_get_digestbyname(algorithm))) {
-			ERROR("EVP_PKEY_CTX_set_signature_md error\n");
+			ERROR("EVP_PKEY_CTX_set_signature_md error");
 			return NULL;
 		}
 		if(ERR_LIB_NONE != EVP_PKEY_sign(ctx, NULL, signLength, digest, digestLen)) {
-			ERROR("EVP_PKEY_sign error\n");
+			ERROR("EVP_PKEY_sign error 1");
 			return NULL;
 		}
 		printf("sign len : %lu\n", *signLength);
 		uint8_t * signature = new uint8_t[*signLength]{0};
 		if(ERR_LIB_NONE != EVP_PKEY_sign(ctx, signature, signLength, digest, digestLen)) {
-			ERROR("EVP_PKEY_sign error\n");
+			ERROR("EVP_PKEY_sign error 2");
 			return NULL;
 		}
 		EVP_PKEY_CTX_free(ctx);
@@ -128,19 +129,19 @@ public:
 		uint8_t * digest = MessageDigest(data, (uint32_t)len, &digestLen, algorithm);
 		EVP_PKEY_CTX * ctx = EVP_PKEY_CTX_new(pkey, NULL);
 		if(ERR_LIB_NONE != EVP_PKEY_verify_init(ctx)) {
-			ERROR("EVP_PKEY_verify_init error\n");
+			ERROR("EVP_PKEY_verify_init error");
 			return false;
 		}
 		if(ERR_LIB_NONE != EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING)) {
-			ERROR("EVP_PKEY_CTX_set_rsa_padding error\n");
+			ERROR("EVP_PKEY_CTX_set_rsa_padding error");
 			return false;
 		}
 		if(ERR_LIB_NONE != EVP_PKEY_CTX_set_signature_md(ctx, EVP_get_digestbyname(algorithm))) {
-			ERROR("EVP_PKEY_CTX_set_signature_md error\n");
+			ERROR("EVP_PKEY_CTX_set_signature_md error");
 			return false;
 		}
 		if(ERR_LIB_NONE != EVP_PKEY_verify(ctx, signature, signLength, digest, digestLen)) {
-			ERROR("EVP_PKEY_sign error\n");
+			ERROR("EVP_PKEY_sign error");
 			return false;
 		}
 		EVP_PKEY_CTX_free(ctx);
