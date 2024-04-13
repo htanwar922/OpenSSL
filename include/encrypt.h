@@ -26,13 +26,18 @@ class AES
 {
 protected:
 	const char * ciphername = NULL;
+	const char algo[4] = "AES";
+	const int bitsize = 128;
+	const char mode[4] = "GCM";
+
 	const uint8_t * key = NULL, * iv = NULL;
-	int key_len = 0, iv_len = 0;
+	int key_len = 0, iv_len = 0, tag_len = 0;
 public:
-	AES(const char * ciphername, const uint8_t * key, int key_len, const uint8_t * iv, int iv_len)
+	AES(const char * ciphername, const uint8_t * key, int key_len, const uint8_t * iv, int iv_len, int tag_len = 0)
 	: ciphername(ciphername)
 	, key_len(key_len)
 	, iv_len(iv_len)
+	, tag_len(tag_len)
 	{
 		this->key = new uint8_t[key_len];
 		this->iv = new uint8_t[iv_len];
@@ -40,46 +45,110 @@ public:
 			memcpy((void *)this->key, (void *)key, key_len);
 		if (iv)
 			memcpy((void *)this->iv, (void *)iv, iv_len);
+		sscanf(ciphername, "%[^-]-%d-%s", (char *)algo, (int *)&bitsize, (char *)mode);
 	}
 
-	int Encrypt(const uint8_t * plaintext, int len, uint8_t * &ciphertext)
+	int Encrypt(const uint8_t * plaintext, int len, uint8_t * &ciphertext, uint8_t * tag = NULL, uint8_t * aad = NULL, int aad_len = 0)
 	{
 		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
-		if(ERR_LIB_NONE != EVP_EncryptInit(ctx, EVP_get_cipherbyname(ciphername), key, (const uint8_t *)iv)) {	// EVP_aes_256_cbc();
+		if(ERR_LIB_NONE != EVP_EncryptInit_ex(ctx, EVP_get_cipherbyname(ciphername), NULL, NULL, NULL)) {
 			ERROR("EVP_EncryptInit error\n");
 			return -1;
 		}
+		if (0 == strcmp(mode, "GCM")) {
+			if (ERR_LIB_NONE != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL)) {
+				ERROR("EVP_CIPHER_CTX_ctrl error in setting the IV Length\n");
+				return -1;
+			}
+		}
+		if(ERR_LIB_NONE != EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv)) {
+			ERROR("EVP_EncryptInit error\n");
+			return -1;
+		}
+
+		if (aad_len and aad) {
+			if (ERR_LIB_NONE != EVP_EncryptUpdate(ctx, NULL, &aad_len, aad, aad_len)) {
+				ERROR("EVP_EncryptUpdate error in setting the AAD\n");
+				return -1;
+			}
+		}
+
 		int retLength1 = 0;
-		if(ERR_LIB_NONE != EVP_EncryptUpdate(ctx, ciphertext, &retLength1, plaintext, len)) {	// Repeat for more plaintext blocks before finishing.
+		// Repeat for more plaintext blocks before finishing.
+		if(ERR_LIB_NONE != EVP_EncryptUpdate(ctx, ciphertext, &retLength1, plaintext, len)) {
 			ERROR("EVP_EncryptUpdate error\n");
 			return -1;
 		}
 		int retLength2 = 0;
-		if(ERR_LIB_NONE != EVP_EncryptFinal(ctx, ciphertext + retLength1, &retLength2)) {
+		if(ERR_LIB_NONE != EVP_EncryptFinal_ex(ctx, ciphertext + retLength1, &retLength2)) {
 			ERROR("EVP_EncryptFinal error\n");
 			return -1;
 		}
+
+		if (0 == strcmp(mode, "GCM")) {
+			if (tag_len and tag) {
+				if (ERR_LIB_NONE != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag_len, tag)) {
+					ERROR("EVP_CIPHER_CTX_ctrl error in getting the tag\n");
+					return -1;
+				}
+			}
+			else {
+				ERROR("Tag length is zero or tag is NULL\n");
+			}
+		}
+
 		EVP_CIPHER_CTX_free(ctx);
 		return retLength1 + retLength2;
 	}
 
-	int Decrypt(const uint8_t * ciphertext, int len, uint8_t * &plaintext)
+	int Decrypt(const uint8_t * ciphertext, int len, uint8_t * &plaintext, uint8_t * tag = NULL, uint8_t * aad = NULL, int aad_len = 0)
 	{
 		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
-		if(ERR_LIB_NONE != EVP_DecryptInit(ctx, EVP_get_cipherbyname(ciphername), key, (const uint8_t *)iv)) {	// EVP_aes_256_cbc();
+		if(ERR_LIB_NONE != EVP_DecryptInit_ex(ctx, EVP_get_cipherbyname(ciphername), NULL, NULL, NULL)) {
 			ERROR("EVP_DecryptInit error\n");
 			return -1;
 		}
+
+		if (0 == strcmp(mode, "GCM")) {
+			if (ERR_LIB_NONE != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL)) {
+				ERROR("EVP_CIPHER_CTX_ctrl error in setting the IV Length\n");
+				return -1;
+			}
+			if (tag_len and tag) {
+				if (ERR_LIB_NONE != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag_len, tag)) {
+					ERROR("EVP_CIPHER_CTX_ctrl error in setting the tag\n");
+					return -1;
+				}
+			}
+			else {
+				ERROR("Tag length is zero or tag is NULL\n");
+			}
+		}
+
+		if(ERR_LIB_NONE != EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv)) {
+			ERROR("EVP_DecryptInit error\n");
+			return -1;
+		}
+
+		if (aad_len and aad) {
+			if (ERR_LIB_NONE != EVP_DecryptUpdate(ctx, NULL, &aad_len, aad, aad_len)) {
+				ERROR("EVP_DecryptUpdate error in setting the AAD\n");
+				return -1;
+			}
+		}
+
 		int retLength1 = 0;
-		if(ERR_LIB_NONE != EVP_DecryptUpdate(ctx, plaintext, &retLength1, ciphertext, len)) {	// Repeat for more ciphertext blocks before finishing.
+		// Repeat for more ciphertext blocks before finishing.
+		if(ERR_LIB_NONE != EVP_DecryptUpdate(ctx, plaintext, &retLength1, ciphertext, len)) {
 			ERROR("EVP_DecryptUpdate error\n");
 			return -1;
 		}
 		int retLength2 = 0;
-		if(ERR_LIB_NONE != EVP_DecryptFinal(ctx, plaintext + retLength1, &retLength2)) {
+		if(ERR_LIB_NONE != EVP_DecryptFinal_ex(ctx, plaintext + retLength1, &retLength2)) {
 			ERROR("EVP_DecryptFinal error\n");
 			return -1;
 		}
+
 		EVP_CIPHER_CTX_free(ctx);
 		return retLength1 + retLength2;
 	}

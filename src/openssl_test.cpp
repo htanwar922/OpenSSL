@@ -27,11 +27,14 @@ int main(int argc, char ** argv)
 	// EVP_PKEY_free(pkey);
 
 	uint8_t * plaintext = (uint8_t *)"Hello World! How is it?\n";
+	size_t plaintext_len = strlen((char *)plaintext);
 	uint8_t * ciphertext = new uint8_t[1024];
 
 	AES_CBC_256 encodeObject = AES_CBC_256();
-	size_t ciphertext_len = encodeObject.Encrypt(plaintext, strlen((char *)plaintext), ciphertext);
+	size_t ciphertext_len = encodeObject.Encrypt(plaintext, plaintext_len, ciphertext);
 
+	BIO_printf(bio_out, "Plaintext is:\n");
+	BIO_dump(bio_out, (const char *)plaintext, plaintext_len);
 	BIO_printf(bio_out, "AES-256-CBC Key is:\n");
 	BIO_dump(bio_out, (const char *)encodeObject.GetKey(), 32);
 	BIO_printf(bio_out, "IV is:\n");
@@ -63,13 +66,13 @@ int main(int argc, char ** argv)
 	
 	pkey.GetKey(SOURCE_DIR"/private.pem", "private");	// Password - Himanshu
 	// pkey.PrintKey("public");
-	uint8_t * text = NULL;
-	int plaintext_len = pkey.Decrypt(ciphertext, ciphertext_len, text);
+	uint8_t * decodedtext = NULL;
+	size_t decodedtext_len = pkey.Decrypt(ciphertext, ciphertext_len, decodedtext);
 	BIO_printf(bio_out, "Plaintext is:\n");
-	BIO_dump(bio_out, (const char *)plaintext, plaintext_len);
-
+	BIO_dump(bio_out, (const char *)decodedtext, decodedtext_len);
 
 	delete[] ciphertext;
+	delete[] decodedtext;
 
 	BIO_free(bio_out);
 
