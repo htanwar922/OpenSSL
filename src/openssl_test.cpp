@@ -61,7 +61,7 @@ int main(int argc, char ** argv)
 	BIO_printf(bio_out, "Ciphertext is: %lu\n", ciphertext_len);
 	BIO_dump(bio_out, (const char *)ciphertext, ciphertext_len);
 	
-	pkey.GetKey("../private.pem", "private");
+	pkey.GetKey(SOURCE_DIR"/private.pem", "private");	// Password - Himanshu
 	// pkey.PrintKey("public");
 	uint8_t * text = NULL;
 	int plaintext_len = pkey.Decrypt(ciphertext, ciphertext_len, text);

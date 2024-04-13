@@ -63,7 +63,9 @@ uint8_t * MessageDigest(const uint8_t data[], uint32_t len, uint32_t * md_len, c
 		return NULL;
 	}
 	
-	EVP_MD_CTX_cleanup(ctx);				// EVP_MD_CTX_free in OpenSSL 1.1.0+
+	// EVP_MD_CTX_cleanup in OpenSSL 1.0.x
+	// EVP_MD_CTX_free in OpenSSL 1.1.0+
+	EVP_MD_CTX_destroy(ctx);
 	return digest;
 }
 

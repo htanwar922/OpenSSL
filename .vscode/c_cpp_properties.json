@@ -7,7 +7,8 @@
                 "/usr/local/include/libmongoc-1.0",
                 "/usr/local/include/bsoncxx/v_noabi",
                 "/usr/local/include/libbson-1.0",
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/ipc/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/g++",

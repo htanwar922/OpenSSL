@@ -5,13 +5,61 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "(gdb) Launch",
+			"name": "(gdb) Launch Test",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${fileDirname}/${fileBasenameNoExtension}",
+			"program": "${workspaceFolder}/build/src/Test",
 			"args": [],
 			"stopAtEntry": false,
-			"cwd": "${fileDirname}",
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				},
+				{
+					"description":  "Set Disassembly Flavor to Intel",
+					"text": "-gdb-set disassembly-flavor intel",
+					"ignoreFailures": true
+				}
+			]
+		},
+		{
+			"name": "(gdb) Launch Writer",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/ipc/writer",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				},
+				{
+					"description":  "Set Disassembly Flavor to Intel",
+					"text": "-gdb-set disassembly-flavor intel",
+					"ignoreFailures": true
+				}
+			]
+		},
+		{
+			"name": "(gdb) Launch Reader",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/ipc/reader",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
 			"environment": [],
 			"externalConsole": false,
 			"MIMode": "gdb",
@@ -28,6 +76,5 @@
 				}
 			]
 		}
-
 	]
 }

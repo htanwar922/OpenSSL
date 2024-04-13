@@ -159,7 +159,7 @@ public:
 			case EVP_PKEY_RSA:
 				ret = PEM_write_RSAPrivateKey(
 					file,					// FILE struct to write to
-					pkey->pkey.rsa,					// EVP_PKEY struct
+					EVP_PKEY_get1_RSA(pkey),// EVP_PKEY struct		// pkey->pkey.rsa
 					EVP_aes_128_cbc(),		// default EVP_CIPHER for encrypting the key on disk
 					(uint8_t *)passphrase,	// passphrase for encrypting the key on disk
 					strlen(passphrase),		// length of the passphrase string
