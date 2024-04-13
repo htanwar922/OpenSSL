@@ -22,31 +22,30 @@
 // echo -en "Hello World" | openssl enc -nosalt -aes-256-cbc -k <key> -iv <iv> | openssl enc -d -nosalt -aes-256-cbc -k <key> -iv <iv>
 namespace LibOpenSSL {
 
-// AES CBC 256-bit encryption class
-// AES - Advanced Encryption Standard
-// CBC - Cipher Block Chain mode
-//
-class AES_CBC_256
+class AES
 {
-private:
+protected:
+	const char * ciphername = NULL;
 	const uint8_t * key = NULL, * iv = NULL;
+	int key_len = 0, iv_len = 0;
 public:
-	AES_CBC_256()
+	AES(const char * ciphername, const uint8_t * key, int key_len, const uint8_t * iv, int iv_len)
+	: ciphername(ciphername)
+	, key_len(key_len)
+	, iv_len(iv_len)
 	{
-		// key = new uint8_t[32];
-		// iv = new uint8_t[AES_BLOCK_SIZE];
-		// RAND_bytes((uint8_t *)key, 32);
-		// RAND_bytes((uint8_t *)iv, AES_BLOCK_SIZE);
-		
-		// echo -en "Hello World How art thou?\r\n" | openssl enc -nosalt -aes-256-cbc -K f71d24280a6bb77e18f9fd2ff22a72dfad72d8f44a9b71181358234553357913 -iv 62bd8545506afca8d6e71f066ba3e7a0 | hexdump -C
-		key = new uint8_t[32]{0xf7, 0x1d, 0x24, 0x28, 0x0a, 0x6b, 0xb7, 0x7e, 0x18, 0xf9, 0xfd, 0x2f, 0xf2, 0x2a, 0x72, 0xdf, 0xad, 0x72, 0xd8, 0xf4, 0x4a, 0x9b, 0x71, 0x18, 0x13, 0x58, 0x23, 0x45, 0x53, 0x35, 0x79, 0x13};
-		iv = new uint8_t[AES_BLOCK_SIZE]{0x62, 0xbd, 0x85, 0x45, 0x50, 0x6a, 0xfc, 0xa8, 0xd6, 0xe7, 0x1f, 0x06, 0x6b, 0xa3, 0xe7, 0xa0};
+		this->key = new uint8_t[key_len];
+		this->iv = new uint8_t[iv_len];
+		if (key)
+			memcpy((void *)this->key, (void *)key, key_len);
+		if (iv)
+			memcpy((void *)this->iv, (void *)iv, iv_len);
 	}
 
 	int Encrypt(const uint8_t * plaintext, int len, uint8_t * &ciphertext)
 	{
 		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
-		if(ERR_LIB_NONE != EVP_EncryptInit(ctx, EVP_get_cipherbyname("AES-256-CBC"), key, (const uint8_t *)iv)) {	// EVP_aes_256_cbc();
+		if(ERR_LIB_NONE != EVP_EncryptInit(ctx, EVP_get_cipherbyname(ciphername), key, (const uint8_t *)iv)) {	// EVP_aes_256_cbc();
 			ERROR("EVP_EncryptInit error\n");
 			return -1;
 		}
@@ -67,7 +66,7 @@ public:
 	int Decrypt(const uint8_t * ciphertext, int len, uint8_t * &plaintext)
 	{
 		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
-		if(ERR_LIB_NONE != EVP_DecryptInit(ctx, EVP_get_cipherbyname("AES-256-CBC"), key, (const uint8_t *)iv)) {	// EVP_aes_256_cbc();
+		if(ERR_LIB_NONE != EVP_DecryptInit(ctx, EVP_get_cipherbyname(ciphername), key, (const uint8_t *)iv)) {	// EVP_aes_256_cbc();
 			ERROR("EVP_DecryptInit error\n");
 			return -1;
 		}
@@ -100,10 +99,30 @@ public:
 		return iv;
 	}
 
-	~AES_CBC_256()
+	~AES()
 	{
 		if(key)	delete[] key;
 		if(iv) delete[] iv;
+	}
+};
+
+// AES CBC 256-bit encryption class
+// AES - Advanced Encryption Standard
+// CBC - Cipher Block Chain mode
+//
+class AES_CBC_256 : public AES
+{
+public:
+	AES_CBC_256() : AES("AES-256-CBC", NULL, 32, NULL, AES_BLOCK_SIZE)
+	{
+		// key = new uint8_t[32];
+		// iv = new uint8_t[AES_BLOCK_SIZE];
+		// RAND_bytes((uint8_t *)key, 32);
+		// RAND_bytes((uint8_t *)iv, AES_BLOCK_SIZE);
+		
+		// echo -en "Hello World How art thou?\r\n" | openssl enc -nosalt -aes-256-cbc -K f71d24280a6bb77e18f9fd2ff22a72dfad72d8f44a9b71181358234553357913 -iv 62bd8545506afca8d6e71f066ba3e7a0 | hexdump -C
+		key = new uint8_t[32]{0xf7, 0x1d, 0x24, 0x28, 0x0a, 0x6b, 0xb7, 0x7e, 0x18, 0xf9, 0xfd, 0x2f, 0xf2, 0x2a, 0x72, 0xdf, 0xad, 0x72, 0xd8, 0xf4, 0x4a, 0x9b, 0x71, 0x18, 0x13, 0x58, 0x23, 0x45, 0x53, 0x35, 0x79, 0x13};
+		iv = new uint8_t[AES_BLOCK_SIZE]{0x62, 0xbd, 0x85, 0x45, 0x50, 0x6a, 0xfc, 0xa8, 0xd6, 0xe7, 0x1f, 0x06, 0x6b, 0xa3, 0xe7, 0xa0};
 	}
 };
 

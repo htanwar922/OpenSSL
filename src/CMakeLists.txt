@@ -10,6 +10,13 @@ target_link_libraries(Test
 	crypto
 )
 
+add_executable(Test_AES test_aes.cpp)
+target_link_libraries(Test_AES
+	${LINK_LIBRARIES}
+	ssl
+	crypto
+)
+
 add_executable(writer_openssl openssl_writer.cpp)
 target_link_libraries(writer_openssl
 	${LINK_LIBRARIES}
