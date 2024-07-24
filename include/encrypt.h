@@ -101,6 +101,59 @@ public:
 		return retLength1 + retLength2;
 	}
 
+	int GetGMAC(const uint8_t * plaintext, int len, uint8_t * tag, uint8_t * aad = NULL, int aad_len = 0)
+	{
+		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
+		if(ERR_LIB_NONE != EVP_EncryptInit_ex(ctx, EVP_get_cipherbyname(ciphername), NULL, NULL, NULL)) {
+			ERROR("EVP_EncryptInit error\n");
+			return -1;
+		}
+		if (0 == strcmp(mode, "GCM")) {
+			if (ERR_LIB_NONE != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL)) {
+				ERROR("EVP_CIPHER_CTX_ctrl error in setting the IV Length\n");
+				return -1;
+			}
+		}
+		if(ERR_LIB_NONE != EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv)) {
+			ERROR("EVP_EncryptInit error\n");
+			return -1;
+		}
+
+		if (aad_len and aad) {
+			if (ERR_LIB_NONE != EVP_EncryptUpdate(ctx, NULL, &aad_len, aad, aad_len)) {
+				ERROR("EVP_EncryptUpdate error in setting the AAD\n");
+				return -1;
+			}
+		}
+
+		int retLength1 = 0;
+		// Repeat for more plaintext blocks before finishing.
+		if(ERR_LIB_NONE != EVP_EncryptUpdate(ctx, NULL, &retLength1, plaintext, len)) {
+			ERROR("EVP_EncryptUpdate error\n");
+			return -1;
+		}
+		int retLength2 = 0;
+		if(ERR_LIB_NONE != EVP_EncryptFinal_ex(ctx, NULL, &retLength2)) {
+			ERROR("EVP_EncryptFinal error\n");
+			return -1;
+		}
+
+		if (0 == strcmp(mode, "GCM")) {
+			if (tag_len and tag) {
+				if (ERR_LIB_NONE != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag_len, tag)) {
+					ERROR("EVP_CIPHER_CTX_ctrl error in getting the tag\n");
+					return -1;
+				}
+			}
+			else {
+				ERROR("Tag length is zero or tag is NULL\n");
+			}
+		}
+
+		EVP_CIPHER_CTX_free(ctx);
+		return retLength1 + retLength2;
+	}
+
 	int Decrypt(const uint8_t * ciphertext, int len, uint8_t * &plaintext, uint8_t * tag = NULL, uint8_t * aad = NULL, int aad_len = 0)
 	{
 		EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
@@ -188,7 +241,7 @@ public:
 		// iv = new uint8_t[AES_BLOCK_SIZE];
 		// RAND_bytes((uint8_t *)key, 32);
 		// RAND_bytes((uint8_t *)iv, AES_BLOCK_SIZE);
-		
+
 		// echo -en "Hello World How art thou?\r\n" | openssl enc -nosalt -aes-256-cbc -K f71d24280a6bb77e18f9fd2ff22a72dfad72d8f44a9b71181358234553357913 -iv 62bd8545506afca8d6e71f066ba3e7a0 | hexdump -C
 		key = new uint8_t[32]{0xf7, 0x1d, 0x24, 0x28, 0x0a, 0x6b, 0xb7, 0x7e, 0x18, 0xf9, 0xfd, 0x2f, 0xf2, 0x2a, 0x72, 0xdf, 0xad, 0x72, 0xd8, 0xf4, 0x4a, 0x9b, 0x71, 0x18, 0x13, 0x58, 0x23, 0x45, 0x53, 0x35, 0x79, 0x13};
 		iv = new uint8_t[AES_BLOCK_SIZE]{0x62, 0xbd, 0x85, 0x45, 0x50, 0x6a, 0xfc, 0xa8, 0xd6, 0xe7, 0x1f, 0x06, 0x6b, 0xa3, 0xe7, 0xa0};
