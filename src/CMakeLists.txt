@@ -30,3 +30,10 @@ target_link_libraries(reader_openssl
 	ssl
 	crypto
 )
+
+add_executable(Test_AES1 test_aes1.cpp)
+target_link_libraries(Test_AES1
+	${LINK_LIBRARIES}
+	ssl
+	crypto
+)

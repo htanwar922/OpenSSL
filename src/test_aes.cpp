@@ -55,7 +55,7 @@ Array hex_stream_to_array(const char * stream)
 	array.len = strlen(stream) / 2;
 	array.data = new uint8_t[array.len];
 	for(size_t i = 0; i < array.len; i++)
-		sscanf(stream + 2 * i, "%02x", array.data + i);
+		sscanf(stream + 2 * i, "%02hhx", array.data + i);
 	return array;
 }
 
