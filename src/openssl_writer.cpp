@@ -27,12 +27,12 @@ int main()
 	OpenSSL_add_all_algorithms();
 	OpenSSL_add_all_ciphers();
 	OpenSSL_add_all_digests();
-	
+
 	static Semaphore semaphore("/tmp", 1, 1, 1);
 	static Semaphore semaphoreInstances("/tmp", 2, 1, 0);
 	static SharedMemory shmem("/tmp", 1, SHMEM_SIZE + 1);
 	static uint8_t * str = (uint8_t *)shmem.GetSharedMemoryAddress();
-	
+
 	struct sigaction SigIntHandler;
 	SigIntHandler.sa_handler = [](int s) {
 		printf("Caught signal %d\n", s);
@@ -63,7 +63,7 @@ int main()
 		textMessage.Len = strlen((char *)textMessage.Body);
 		if(semaphore.Wait()) {
 			if(true) {
-				byteMessage.Len = encodeObject.Encrypt(textMessage.Body, textMessage.Len, byteMessage.Body);
+				// byteMessage.Len = encodeObject.Encrypt(textMessage.Body, textMessage.Len, byteMessage.Body);
 				memcpy(str, (uint8_t *)&byteMessage.Len, sizeof(byteMessage.Len));
 				memcpy(str + sizeof(byteMessage.Len), byteMessage.Body, byteMessage.Len);
 

@@ -89,60 +89,60 @@ int main(int argc, char ** argv)
 	size_t ciphertext_len = 0;
 	size_t decodedtext_len = 0;
 
-	// AES aes(ALGORITHM, key, sizeof(key), iv, sizeof(iv), sizeof(tag));
-	// ciphertext_len = aes.Encrypt(plaintext, plaintext_len, ciphertext, tag, aad, sizeof(aad));
-	// decodedtext_len = aes.Decrypt(ciphertext, ciphertext_len, decodedtext, tag, aad, sizeof(aad));
+	AES_128_GCM aes(key);
+	ciphertext_len = aes.Encrypt(plaintext, plaintext_len, iv, sizeof(iv), ciphertext, tag, aad, sizeof(aad));
+	decodedtext_len = aes.Decrypt(ciphertext, ciphertext_len, iv, sizeof(iv), decodedtext, tag, aad, sizeof(aad));
 
-	// BIO_printf(bio_out, "Plaintext is:\n");
-	// BIO_dump_fp(stdout, (const char *)plaintext, plaintext_len);
-	// BIO_printf(bio_out, ALGORITHM" Key is:\n");
-	// BIO_dump(bio_out, (const char *)key, sizeof(key));
-	// BIO_printf(bio_out, "IV is:\n");
-	// BIO_dump(bio_out, (const char *)iv, sizeof(iv));
-	// BIO_printf(bio_out, "Ciphertext is:\n");
-	// BIO_dump_fp(stdout, (const char *)ciphertext, ciphertext_len);
-	// BIO_printf(bio_out, "Tag is:\n");
-	// BIO_dump(bio_out, (const char *)tag, sizeof(tag));
-	// BIO_printf(bio_out, "Decodedtext is:\n");
-	// BIO_dump_fp(stdout, (const char *)decodedtext, decodedtext_len);
+	BIO_printf(bio_out, "Plaintext is:\n");
+	BIO_dump_fp(stdout, (const char *)plaintext, plaintext_len);
+	BIO_printf(bio_out, ALGORITHM" Key is:\n");
+	BIO_dump(bio_out, (const char *)key, sizeof(key));
+	BIO_printf(bio_out, "IV is:\n");
+	BIO_dump(bio_out, (const char *)iv, sizeof(iv));
+	BIO_printf(bio_out, "Ciphertext is:\n");
+	BIO_dump_fp(stdout, (const char *)ciphertext, ciphertext_len);
+	BIO_printf(bio_out, "Tag is:\n");
+	BIO_dump(bio_out, (const char *)tag, sizeof(tag));
+	BIO_printf(bio_out, "Decodedtext is:\n");
+	BIO_dump_fp(stdout, (const char *)decodedtext, decodedtext_len);
 
 	delete[] ciphertext; ciphertext = nullptr;
 	delete[] decodedtext; decodedtext = nullptr;
 
-	Array ctos = hex_stream_to_array("03dc7ea945ace7bab4b5463ef0035970");
-	// Array expected_tag = hex_stream_to_array("cf0525308eb7c504dfd1dca6c5501633");
-	// Array ctos = hex_stream_to_array("e7d4c23c572ae376036ddfa5799c3341");
-	Array expected_tag;
-	aad[0] = 0x30;
-	int challenge_len = sizeof(aad) + ctos.len;
-	uint8_t * challenge = new uint8_t[challenge_len];
-	memcpy(challenge, aad, sizeof(aad));
-	memcpy(challenge + sizeof(aad), ctos.data, ctos.len);
-	BIO_printf(bio_out, "Challenge is:\n");
-	BIO_dump(bio_out, (const char *)challenge, challenge_len);
+	// Array ctos = hex_stream_to_array("03dc7ea945ace7bab4b5463ef0035970");
+	// // Array expected_tag = hex_stream_to_array("cf0525308eb7c504dfd1dca6c5501633");
+	// // Array ctos = hex_stream_to_array("e7d4c23c572ae376036ddfa5799c3341");
+	// Array expected_tag;
+	// aad[0] = 0x30;
+	// int challenge_len = sizeof(aad) + ctos.len;
+	// uint8_t * challenge = new uint8_t[challenge_len];
+	// memcpy(challenge, aad, sizeof(aad));
+	// memcpy(challenge + sizeof(aad), ctos.data, ctos.len);
+	// BIO_printf(bio_out, "Challenge is:\n");
+	// BIO_dump(bio_out, (const char *)challenge, challenge_len);
 
-	uint32_t start = 0x00000000;
-	uint32_t end   = 0x0000ffff;
-	start = end = 0xcf052530;
-	for (uint32_t ic = start; ic <= end; ic++) {
-		*(uint32_t *)((uint8_t *)iv + 8) = htonl(ic);
+	// uint32_t start = 0x00000000;
+	// uint32_t end   = 0x0000ffff;
+	// start = end = 0xcf052530;
+	// for (uint32_t ic = start; ic <= end; ic++) {
+	// 	*(uint32_t *)((uint8_t *)iv + 8) = htonl(ic);
 
-		AES aes(ALGORITHM, key, sizeof(key), iv, sizeof(iv), sizeof(tag));
-		ciphertext_len = aes.Encrypt(challenge, challenge_len, ciphertext, tag, nullptr, 0);
+	// 	AES_128_GCM aes(key);
+	// 	ciphertext_len = aes.Encrypt(challenge, challenge_len, iv, sizeof(iv), ciphertext, tag, aad, sizeof(aad));
 
-		bool is_equal = true;
-		for (size_t i = 0; i < expected_tag.len; i++) {
-			if (tag[i] != expected_tag.data[i]) {
-				is_equal = false;
-				break;
-			}
-		}
-		if (is_equal) {
-			BIO_printf(bio_out, "Tag is:\n");
-			BIO_dump(bio_out, (const char *)tag, sizeof(tag));
-			BIO_printf(bio_out, "Ciphertext Length: %ld\n", ciphertext_len);
-		}
-	}
+	// 	bool is_equal = true;
+	// 	for (size_t i = 0; i < expected_tag.len; i++) {
+	// 		if (tag[i] != expected_tag.data[i]) {
+	// 			is_equal = false;
+	// 			break;
+	// 		}
+	// 	}
+	// 	if (is_equal) {
+	// 		BIO_printf(bio_out, "Tag is:\n");
+	// 		BIO_dump(bio_out, (const char *)tag, sizeof(tag));
+	// 		BIO_printf(bio_out, "Ciphertext Length: %ld\n", ciphertext_len);
+	// 	}
+	// }
 
 	BIO_free(bio_out);
 

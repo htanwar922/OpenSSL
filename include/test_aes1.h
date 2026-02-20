@@ -135,7 +135,7 @@ struct Array
 {
 	uint8_t * data = nullptr;
 	size_t len = 0;
-	
+
 	Array() {}
 	Array(uint8_t * data, size_t size) : data(data), len(size) {}
 	Array(const Array& other) : data(other.data), len(other.len) {}

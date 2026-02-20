@@ -37,3 +37,10 @@ target_link_libraries(Test_AES1
 	ssl
 	crypto
 )
+
+# add_executable(Test_AES1_Custom test_aes1_custom.cpp custom/DLMSVector.cpp)
+# target_link_libraries(Test_AES1_Custom
+# 	${LINK_LIBRARIES}
+# 	ssl
+# 	crypto
+# )

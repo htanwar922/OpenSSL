@@ -14,7 +14,7 @@ int main(int argc, char ** argv)
 	OpenSSL_add_all_digests();
 	// OPENSSL_config(NULL); // Load default configuration (e.g. openssl.conf)
 	// OPENSSL_init_ssl(0, NULL);
-	
+
 	BIO * bio_out = BIO_new_fp(stdout, BIO_NOCLOSE);
 	BIO_printf(bio_out, "Hello World\n");
 
@@ -30,15 +30,17 @@ int main(int argc, char ** argv)
 	size_t plaintext_len = strlen((char *)plaintext);
 	uint8_t * ciphertext = new uint8_t[1024];
 
+	uint8_t * iv = new uint8_t[AES_BLOCK_SIZE]{0x62, 0xbd, 0x85, 0x45, 0x50, 0x6a, 0xfc, 0xa8, 0xd6, 0xe7, 0x1f, 0x06, 0x6b, 0xa3, 0xe7, 0xa0};
+
 	AES_CBC_256 encodeObject = AES_CBC_256();
-	size_t ciphertext_len = encodeObject.Encrypt(plaintext, plaintext_len, ciphertext);
+	size_t ciphertext_len = encodeObject.Encrypt(plaintext, plaintext_len, iv, AES_BLOCK_SIZE, ciphertext);
 
 	BIO_printf(bio_out, "Plaintext is:\n");
 	BIO_dump(bio_out, (const char *)plaintext, plaintext_len);
 	BIO_printf(bio_out, "AES-256-CBC Key is:\n");
-	BIO_dump(bio_out, (const char *)encodeObject.GetKey(), 32);
+	BIO_dump(bio_out, (const char *)encodeObject.GetKey().data(), 32);
 	BIO_printf(bio_out, "IV is:\n");
-	BIO_dump(bio_out, (const char *)encodeObject.GetIV(), AES_BLOCK_SIZE);
+	BIO_dump(bio_out, (const char *)iv, AES_BLOCK_SIZE);
 	BIO_printf(bio_out, "Ciphertext is:\n");
 	encodeObject.PrintCiphertext(ciphertext, ciphertext_len);
 
@@ -63,7 +65,7 @@ int main(int argc, char ** argv)
 	ciphertext_len = pkey.Encrypt((const uint8_t *)"Hello", 5U, ciphertext);
 	BIO_printf(bio_out, "Ciphertext is: %lu\n", ciphertext_len);
 	BIO_dump(bio_out, (const char *)ciphertext, ciphertext_len);
-	
+
 	pkey.GetKey(SOURCE_DIR"/private.pem", "private");	// Password - Himanshu
 	// pkey.PrintKey("public");
 	uint8_t * decodedtext = NULL;

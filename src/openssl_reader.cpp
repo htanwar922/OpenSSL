@@ -27,7 +27,7 @@ int main()
 	OpenSSL_add_all_algorithms();
 	OpenSSL_add_all_ciphers();
 	OpenSSL_add_all_digests();
-	
+
 	static Semaphore semaphore("/tmp", 1, 1, 1);
 	static Semaphore semaphoreInstances("/tmp", 2, 1, 0);
 	static SharedMemory shmem("/tmp", 1, SHMEM_SIZE + 1);
@@ -54,7 +54,7 @@ int main()
 	PKey pkey;
 	pkey.GetKey("../public.pem", "public");
 	Message textMessage, byteMessage, signMessage;
-	
+
 	semaphoreInstances.Signal();
 	std::cout << "\nSHMEM RD > ";
 	std::cout.flush();
@@ -67,7 +67,7 @@ int main()
 				memcpy((uint8_t *)&signMessage.Len, str + sizeof(byteMessage.Len) + byteMessage.Len, sizeof(signMessage.Len));
 				memcpy(signMessage.Body, str + sizeof(byteMessage.Len) + byteMessage.Len + sizeof(signMessage.Len), signMessage.Len);
 				bool verify = pkey.Verify(byteMessage.Body, byteMessage.Len, signMessage.Body, signMessage.Len, "sha256");
-				textMessage.Len = encodeObject.Decrypt(byteMessage.Body, byteMessage.Len, textMessage.Body);
+				// textMessage.Len = encodeObject.Decrypt(byteMessage.Body, byteMessage.Len, textMessage.Body);
 
 				std::cout << textMessage.Body << std::endl;
 				printf("Read %lu bytes:\n", byteMessage.Len);
